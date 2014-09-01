@@ -4,27 +4,67 @@ from django.conf import settings
 
 from carton import module_loading
 from carton import settings as carton_settings
-
+from .utils import AttributeDict,CartException
 
 class CartItem(object):
     """
     A cart item, with the associated product, its quantity and its price.
     """
     def __init__(self, product, quantity, price):
-        self.product = product
+        # set _product if we have a real model 
+        if isinstance(product,AttributeDict):
+            self._product = None
+        else:
+            self._product = product
+        self.pk = product.pk
         self.quantity = int(quantity)
         self.price = Decimal(str(price))
+        self.fields = {}
+        self.attrs = {}
+        for key in carton_settings.CART_STORED_FIELDS:
+            try:
+                self.set_field(key,product[key])
+            except KeyError:
+                # raise error if field is missing from model, otherwise it will be fetched when demand is present
+                if isinstance(product,AttributeDict):
+                    raise CartException("Stored field %s not found on model" % key)
+        # read any additional attributes from the dict
+        if 'carton_attrs' in product:
+            self.attrs = product['carton_attrs']
 
+    def set_field(self,key,value):
+        if key not in carton_settings.CART_STORED_FIELDS:
+            raise CartException("Tried to set field %s which is not configured as a stored field" % key)
+        self.fields[key] = value
+    def get_field(self,key):
+        if key not in carton_settings.CART_STORED_FIELDS:
+            raise CartException("Tried to get field %s which is not configured as a stored field" % key)
+        # if we have a db object open, then return that - if field isn't stored then fetch it
+        if not key in self.fields or self._product is not None:
+            self.fields[key] = self.product.getattr(key)
+        return self.fields[key]
+        
     def __repr__(self):
         return u'CartItem Object (%s)' % self.product
 
     def to_dict(self):
-        return {
-            'product_pk': self.product.pk,
+        data = {
+            'pk': self.pk,
             'quantity': self.quantity,
             'price': str(self.price),
         }
-
+        for key in carton_settings.CART_STORED_FIELDS:
+            data[key] = self.get_field(key)
+        # store additional attributes if any have been set
+        if len(self.attrs.keys())>0:
+            data['carton_attrs'] = self.attrs       
+        return data
+            
+    @property
+    def product(self):
+        if self._product is None:
+            self.product = module_loading.get_product_model()._default_manager.get(pk=self.pk)
+        return self._product
     @property
     def subtotal(self):
         """
@@ -46,12 +86,13 @@ class Cart(object):
         if self.session_key in self.session:
             # rebuild the cart object from that serialized representation.
             cart_representation = self.session[self.session_key]
-            ids_in_cart = cart_representation.keys()
-            products_queryset = self.get_queryset().filter(pk__in=ids_in_cart)
-            for product in products_queryset:
-                item = cart_representation[str(product.pk)]
-                self._items_dict[product.pk] = CartItem(
-                    product, item['quantity'], Decimal(item['price'])
+            #ids_in_cart = cart_representation.keys()
+            #products_queryset = self.get_queryset().filter(pk__in=ids_in_cart)
+            for pk,item in cart_representation.iteritems():
+                #item = cart_representation[str(product.pk)]
+                # turn item into an AttributeDict to allow item.pk
+                self._items_dict[pk] = CartItem(
+                    AttributeDict(item), item['quantity'], Decimal(item['price'])
                 )
 
     def __contains__(self, product):
@@ -93,7 +134,7 @@ class Cart(object):
         quantity = int(quantity)
         if quantity < 1:
             raise ValueError('Quantity must be at least 1 when adding to cart')
-        if product in self.products:
+        if product.pk in self._items_dict:
             self._items_dict[product.pk].quantity += quantity
         else:
             if price == None:
@@ -105,7 +146,7 @@ class Cart(object):
         """
         Removes the product.
         """
-        if product in self.products:
+        if product.pk in self._items_dict:
             del self._items_dict[product.pk]
             self.update_session()
 
@@ -113,7 +154,7 @@ class Cart(object):
         """
         Removes a single product by decreasing the quantity.
         """
-        if product in self.products:
+        if product.pk in self._items_dict:
             if self._items_dict[product.pk].quantity <= 1:
                 # There's only 1 product left so we drop it
                 del self._items_dict[product.pk]
@@ -135,7 +176,7 @@ class Cart(object):
         quantity = int(quantity)
         if quantity < 0:
             raise ValueError('Quantity must be positive when updating cart')
-        if product in self.products:
+        if product.pk in self._items_dict:
             self._items_dict[product.pk].quantity = quantity
             if self._items_dict[product.pk].quantity < 1:
                 del self._items_dict[product.pk]
@@ -154,8 +195,8 @@ class Cart(object):
         The serializable representation of the cart.
         For instance:
         {
-            '1': {'product_pk': 1, 'quantity': 2, price: '9.99'},
-            '2': {'product_pk': 2, 'quantity': 3, price: '29.99'},
+            '1': {'pk': 1, 'quantity': 2, price: '9.99'},
+            '2': {'pk': 2, 'quantity': 3, price: '29.99'},
         }
         Note how the product pk servers as the dictionary key.
         """

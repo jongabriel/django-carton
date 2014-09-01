@@ -1,13 +1,13 @@
 
-Django Carton
+Django Carton+cache
 =============
 
 
       +------+
      /|     /|
-    +-+----+ |    django-carton is a simple and lightweight application
-    | |    | |    for shopping carts and wish lists.
-    | +----+-+
+    +-+----+ |    django-carton+cache is a reworked version of django-carton 
+    | |    | |    adding a flexible way to limit db-calls. django-carton
+    | +----+-+    is a simple and lightweight application for shopping carts and wish lists.
     |/     |/
     +------+
 
@@ -61,6 +61,8 @@ Template:
 Settings:
 
     CART_PRODUCT_MODEL = 'products.models.Product'
+	CART_STORED_FIELD = ['name','slug',...] # fields from the product model which 
+											# is stored inside the session for easy access 
 
 
 This project is shipped with an application example called ``shopping``
@@ -98,6 +100,8 @@ Just install the package using something like pip and add ``carton`` to
 your ``INSTALLED_APPS`` setting.
 
 Add the `CART_PRODUCT_MODEL` setting, a dotted path to your product model.
+If you want to store specific product fields in the session put them in 
+the CART_STORED_FIELDS setting.
 
 This is how you run tests:
 
@@ -115,10 +119,15 @@ to cart items.
     |----- product
     |----- price
     |----- quantity
+	|----- ... stored fields
+	|----- attrs {dict}
 
-A cart item stores a price, a quantity and an arbitrary instance of
-a product model.
+A cart item stores a price, a quantity,an arbitrary instance of
+a product model, product model data as per the settings put an 
+attribute dict that can hold arbitrary data of your choice. 
+The data in attrs is set by simple accessing the dict	
 
+	item.attrs['foo'] = bar
 
 You can access all your product's attributes, for instance it's name:
 
