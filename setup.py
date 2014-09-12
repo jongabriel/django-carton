@@ -1,12 +1,12 @@
 from setuptools import setup, find_packages
 
-import carton_flexible
+import carton
 
 
 setup(
     name='django-carton',
-    version=carton_flexible.__version__,
-    description=carton_flexible.__doc__,
+    version=carton.__version__,
+    description='Session only cart',
     packages=find_packages(),
     url='http://github.com/jongabriel/django-carton/',
     author='jongabriel',
