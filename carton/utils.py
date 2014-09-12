@@ -1,14 +1,4 @@
-# yes it's possible to do this in a 'magic way' by patching self.__dict__ , however this approach is clean and self-explanatory
-class AttributeDict(dict):
-    def __init__(self,dicta=None):
-        if dicta is not None:
-            for key,value in dicta.iteritems():
-                self[key] = value
-    def __getattr__(self, attr):
-        return self[attr]
-    def __setattr__(self, attr, value):
-        self[attr] = value
-        
+
 class CartException(Exception):
     pass
 

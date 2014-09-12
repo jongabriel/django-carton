@@ -4,7 +4,7 @@ from django.conf import settings
 
 from carton import module_loading
 from carton import settings as carton_settings
-from .utils import AttributeDict,CartException, get_object
+from .utils import CartException, get_object
 
 class CartItem(object):
     """
@@ -13,10 +13,6 @@ class CartItem(object):
     def __init__(self, product, quantity, price):
         # set _product if we have a real model 
         self.product = product            
-        if isinstance(product,AttributeDict):
-            self._product = product
-        else:
-            self._product = product
         self.pk = product.pk
         self.quantity = int(quantity)
         self.price = Decimal(str(price))
@@ -27,8 +23,7 @@ class CartItem(object):
                 self.set_field(key,product.__dict__[key])
             except KeyError:
                 # raise error if field is missing from model, otherwise it will be fetched when demand is present
-                if isinstance(product,AttributeDict):
-                    raise CartException("Stored field %s not found on model" % key)
+                raise CartException("Stored field %s not found on model" % key)
         # read any additional attributes from the dict
 #         if 'carton_attrs' in product:
 #             self.attrs = product['carton_attrs']
@@ -42,11 +37,8 @@ class CartItem(object):
         if key not in carton_settings.CART_STORED_FIELD:
             raise CartException("Tried to get field %s which is not configured as a stored field" % key)
         # if we have a db object open, then return that - if field isn't stored then fetch it
-        if not key in self.fields or self._product is not None:
-            if isinstance(self.product,AttributeDict):
-                self.fields[key] = self.product.getattr(key)
-            else:
-                self.fields[key] = self.product.__dict__[key]
+        if not key in self.fields or self.product is not None:
+            self.fields[key] = self.product.__dict__[key]
         return self.fields[key]
         
     def __repr__(self):
@@ -65,11 +57,6 @@ class CartItem(object):
             data['carton_attrs'] = self.attrs       
         return data
             
-#     @property
-#     def product(self):
-# #         if self._product is None:
-# #             self.product = module_loading.get_product_model()._default_manager.get(pk=self.pk)
-#         return self._product
     @property
     def subtotal(self):
         """

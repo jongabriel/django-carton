@@ -1,5 +1,7 @@
 from django.http import HttpResponse
 
+import json
+
 from carton.cart import Cart
 from carton.tests.models import Product
 
@@ -40,14 +42,18 @@ def remove(request):
 
 def remove_single(request):
     cart = Cart(request.session)
+    initial_count = cart.count
     product = products[int(request.POST.get('product_id'))]
     cart.remove_single(product)
+    after_rmv_count = cart.count
+    assert initial_count == after_rmv_count + 1
     return HttpResponse()
 
 
 def clear(request):
     cart = Cart(request.session)
     cart.clear()
+    assert cart.count == 0
     return HttpResponse()
 
 
@@ -55,5 +61,12 @@ def set_quantity(request):
     cart = Cart(request.session)
     product = products[int(request.POST.get('product_id'))]
     quantity = request.POST.get('quantity')
-    cart.set_quantity(product, quantity)
+    cart.set_quantity(product, quantity)    
     return HttpResponse()
+
+def get_total(request):    
+    cart = Cart(request.session)
+    response_data = {}
+    response_data['total_cost'] = str(cart.total)
+    return HttpResponse(json.dumps(response_data), content_type="application/json")
+        
