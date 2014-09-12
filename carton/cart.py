@@ -4,7 +4,7 @@ from django.conf import settings
 
 from carton import module_loading
 from carton import settings as carton_settings
-from .utils import AttributeDict,CartException
+from .utils import AttributeDict,CartException, get_object
 
 class CartItem(object):
     """
@@ -12,8 +12,9 @@ class CartItem(object):
     """
     def __init__(self, product, quantity, price):
         # set _product if we have a real model 
+        self.product = product            
         if isinstance(product,AttributeDict):
-            self._product = None
+            self._product = product
         else:
             self._product = product
         self.pk = product.pk
@@ -21,27 +22,31 @@ class CartItem(object):
         self.price = Decimal(str(price))
         self.fields = {}
         self.attrs = {}
-        for key in carton_settings.CART_STORED_FIELDS:
+        for key in carton_settings.CART_STORED_FIELD:
             try:
-                self.set_field(key,product[key])
+                self.set_field(key,product.__dict__[key])
             except KeyError:
                 # raise error if field is missing from model, otherwise it will be fetched when demand is present
                 if isinstance(product,AttributeDict):
                     raise CartException("Stored field %s not found on model" % key)
         # read any additional attributes from the dict
-        if 'carton_attrs' in product:
-            self.attrs = product['carton_attrs']
+#         if 'carton_attrs' in product:
+#             self.attrs = product['carton_attrs']
+        #import ipdb; ipdb.set_trace()
 
     def set_field(self,key,value):
-        if key not in carton_settings.CART_STORED_FIELDS:
+        if key not in carton_settings.CART_STORED_FIELD:
             raise CartException("Tried to set field %s which is not configured as a stored field" % key)
         self.fields[key] = value
     def get_field(self,key):
-        if key not in carton_settings.CART_STORED_FIELDS:
+        if key not in carton_settings.CART_STORED_FIELD:
             raise CartException("Tried to get field %s which is not configured as a stored field" % key)
         # if we have a db object open, then return that - if field isn't stored then fetch it
         if not key in self.fields or self._product is not None:
-            self.fields[key] = self.product.getattr(key)
+            if isinstance(self.product,AttributeDict):
+                self.fields[key] = self.product.getattr(key)
+            else:
+                self.fields[key] = self.product.__dict__[key]
         return self.fields[key]
         
     def __repr__(self):
@@ -53,18 +58,18 @@ class CartItem(object):
             'quantity': self.quantity,
             'price': str(self.price),
         }
-        for key in carton_settings.CART_STORED_FIELDS:
+        for key in carton_settings.CART_STORED_FIELD:
             data[key] = self.get_field(key)
         # store additional attributes if any have been set
         if len(self.attrs.keys())>0:
             data['carton_attrs'] = self.attrs       
         return data
             
-    @property
-    def product(self):
-        if self._product is None:
-            self.product = module_loading.get_product_model()._default_manager.get(pk=self.pk)
-        return self._product
+#     @property
+#     def product(self):
+# #         if self._product is None:
+# #             self.product = module_loading.get_product_model()._default_manager.get(pk=self.pk)
+#         return self._product
     @property
     def subtotal(self):
         """
@@ -89,10 +94,11 @@ class Cart(object):
             #ids_in_cart = cart_representation.keys()
             #products_queryset = self.get_queryset().filter(pk__in=ids_in_cart)
             for pk,item in cart_representation.iteritems():
+                item_from_json = get_object( item )
                 #item = cart_representation[str(product.pk)]
                 # turn item into an AttributeDict to allow item.pk
                 self._items_dict[pk] = CartItem(
-                    AttributeDict(item), item['quantity'], Decimal(item['price'])
+                    item_from_json, item['quantity'], Decimal(item['price'])
                 )
 
     def __contains__(self, product):
@@ -134,7 +140,7 @@ class Cart(object):
         quantity = int(quantity)
         if quantity < 1:
             raise ValueError('Quantity must be at least 1 when adding to cart')
-        if product.pk in self._items_dict:
+        if product.custom_id in self._items_dict:
             self._items_dict[product.pk].quantity += quantity
         else:
             if price == None:
@@ -203,7 +209,7 @@ class Cart(object):
         cart_representation = {}
         for item in self.items:
             # JSON serialization: object attribute should be a string
-            product_id = str(item.product.pk)
+            product_id = int(item.product.pk)
             cart_representation[product_id] = item.to_dict()
         return cart_representation
 
