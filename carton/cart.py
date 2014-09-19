@@ -6,6 +6,8 @@ from carton import module_loading
 from carton import settings as carton_settings
 from .utils import CartException, get_object
 
+import pickle
+
 class CartItem(object):
     """
     A cart item, with the associated product, its quantity and its price.
@@ -43,20 +45,7 @@ class CartItem(object):
         
     def __repr__(self):
         return u'CartItem Object (%s)' % self.product
-
-    def to_dict(self):
-        data = {
-            'pk': self.pk,
-            'quantity': self.quantity,
-            'price': str(self.price),
-        }
-        for key in carton_settings.CART_STORED_FIELD:
-            data[key] = self.get_field(key)
-        # store additional attributes if any have been set
-        if len(self.attrs.keys())>0:
-            data['carton_attrs'] = self.attrs       
-        return data
-            
+   
     @property
     def subtotal(self):
         """
@@ -82,11 +71,7 @@ class Cart(object):
             #products_queryset = self.get_queryset().filter(pk__in=ids_in_cart)
             for pk,item in cart_representation.iteritems():
                 item_from_json = get_object( item )
-                #item = cart_representation[str(product.pk)]
-                # turn item into an AttributeDict to allow item.pk
-                self._items_dict[pk] = CartItem(
-                    item_from_json, item['quantity'], Decimal(item['price'])
-                )
+                self._items_dict[pk] = item_from_json
 
     def __contains__(self, product):
         """
@@ -195,9 +180,8 @@ class Cart(object):
         """
         cart_representation = {}
         for item in self.items:
-            # JSON serialization: object attribute should be a string
             product_id = int(item.product.pk)
-            cart_representation[product_id] = item.to_dict()
+            cart_representation[product_id] = pickle.dumps(item)
         return cart_representation
 
 
