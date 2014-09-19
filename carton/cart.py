@@ -127,7 +127,7 @@ class Cart(object):
         quantity = int(quantity)
         if quantity < 1:
             raise ValueError('Quantity must be at least 1 when adding to cart')
-        if product.custom_id in self._items_dict:
+        if product.pk in self._items_dict:
             self._items_dict[product.pk].quantity += quantity
         else:
             if price == None:
