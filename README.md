@@ -105,7 +105,7 @@ the CART_STORED_FIELDS setting.
 
 This is how you run tests:
 
-    ./manage.py test carton.tests --settings=carton.tests.settings
+    /manage.py test tests --settings=carton.tests.settings
 
 
 Abstract
