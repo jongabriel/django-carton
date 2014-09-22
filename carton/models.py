@@ -3,9 +3,9 @@
 Base class for the cart items.
 '''
 class Product(object):
-    def __init__(self, custom_id, name, price):
-        self.custom_id = custom_id #TODO how is this different from pk?
-        self.pk = custom_id
+    def __init__(self, pk, name = None, price = None):
+        #self.custom_id = custom_id #TODO how is this different from pk?
+        self.pk = pk
         self.name = name
         self.price = price
 
