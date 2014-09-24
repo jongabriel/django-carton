@@ -9,4 +9,5 @@ urlpatterns = patterns('carton.tests.views',
     url(r'^clear/$', 'clear', name='carton-tests-clear'),
     url(r'^set-quantity/$', 'set_quantity', name='carton-tests-set-quantity'),
     url(r'^gettotal/$', 'get_total', name='carton-tests-get-total'),
+    url(r'^changeprice/$', 'change_price', name='carton-tests-change_price'),
 )

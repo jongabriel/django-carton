@@ -104,6 +104,21 @@ class Cart(object):
         self.session[self.session_key] = self.cart_serializable
         self.session.modified = True
 
+    def change_price(self, product, price=None, quantity=1):
+        """
+        Changes the price of a product in the cart. If the 
+        product isn't in the cart, the new price is ignored.
+        """
+        quantity = int(quantity)
+        if price == None:
+            raise ValueError('Missing price when adding to cart')
+        if product.pk in self._items_dict:
+            old_prod = self._items_dict[product.pk]
+            self.clear()
+            new_prod = CartItem( old_prod.product, old_prod.quantity, price )
+            self._items_dict[product.pk] = new_prod
+        self.update_session()
+
     def add(self, product, price=None, quantity=1):
         """
         Adds or creates products in cart. For an existing product,

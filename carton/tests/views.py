@@ -69,4 +69,19 @@ def get_total(request):
     response_data = {}
     response_data['total_cost'] = str(cart.total)
     return HttpResponse(json.dumps(response_data), content_type="application/json")
+
+'''
+We're trusting the price sent to us. In a real-world 
+scenario, the price would be changed internally from a trusted
+source.
+'''
+def change_price(request):
+    cart = Cart(request.session)
+    product = products[int(request.POST.get('product_id'))]
+    price = float(request.POST.get('price', product.price))
+    quantity = request.POST.get('quantity', 1)
+    cart.change_price(product, price, quantity)
+    return HttpResponse()
+    
+
         
