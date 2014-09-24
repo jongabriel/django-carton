@@ -90,4 +90,9 @@ def add_tax(request):
     cart.add_tax(product, tax)
     return HttpResponse()
     
+def get_total_pretax(request):
+    cart = Cart(request.session)
+    response_data = {}
+    response_data['total_pretax'] = str(cart.total_pretax)
+    return HttpResponse(json.dumps(response_data), content_type="application/json")
         

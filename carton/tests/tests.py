@@ -24,6 +24,7 @@ class CartTests(TestCase):
         self.url_get_total = reverse('carton-tests-get-total')
         self.url_changeprice = reverse('carton-tests-change_price')
         self.url_addtax = reverse('carton-tests-add_tax')
+        self.url_pretax_total = reverse('carton-tests-total_pretax')
         self.deer_data = {'product_id': self.deer.custom_id}
         self.moose_data = {'product_id': self.moose.custom_id}
 
@@ -214,6 +215,12 @@ class CartTests(TestCase):
         resp_dict = json.loads(resp.content)
         deer2_and_moose_total = resp_dict['total_cost']
         self.assertEqual(float(deer2_and_moose_total), 32.75, "price didn't match: %s=32.75" %deer2_and_moose_total)
+        
+        #check the pretax price
+        resp = self.client.get(self.url_pretax_total)
+        resp_dict = json.loads(resp.content)
+        pretax_total = resp_dict['total_pretax']
+        self.assertEqual(float(pretax_total), 31.0, "price didn't match: %s=31.0" %pretax_total)
         
         #finally, we need 2 deer
         self.client.post(self.url_add, self.deer_data)

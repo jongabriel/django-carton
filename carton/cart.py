@@ -53,7 +53,8 @@ class CartItem(object):
         Subtotal for the cart item.
         """
         return (self.price_pretax + self.tax) * self.quantity
-
+    
+    @property
     def subtotal_pretax(self):
         """
         Subtotal for the cart item, pretax.
@@ -259,7 +260,7 @@ class Cart(object):
         return sum([item.subtotal for item in self.items])
 
     @property
-    def total_pre_tax(self):
+    def total_pretax(self):
         """
         The total value of all the items in the cart pre-tax.
         """

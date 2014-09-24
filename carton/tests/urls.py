@@ -11,4 +11,5 @@ urlpatterns = patterns('carton.tests.views',
     url(r'^gettotal/$', 'get_total', name='carton-tests-get-total'),
     url(r'^changeprice/$', 'change_price', name='carton-tests-change_price'),
     url(r'^addtax/$', 'add_tax', name='carton-tests-add_tax'),
+    url(r'^totalpretax/$', 'get_total_pretax', name='carton-tests-total_pretax'),
 )
