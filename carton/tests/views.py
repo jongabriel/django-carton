@@ -83,5 +83,11 @@ def change_price(request):
     cart.change_price(product, price, quantity)
     return HttpResponse()
     
-
+def add_tax(request):
+    cart = Cart(request.session)
+    product = products[int(request.POST.get('product_id'))]
+    tax = float(request.POST.get('tax', 0.0))
+    cart.add_tax(product, tax)
+    return HttpResponse()
+    
         

@@ -12,12 +12,13 @@ class CartItem(object):
     """
     A cart item, with the associated product, its quantity and its price.
     """
-    def __init__(self, product, quantity, price):
+    def __init__(self, product, quantity, price_pretax, tax = 0.0):
         # set _product if we have a real model 
         self.product = product            
         self.pk = product.pk
         self.quantity = int(quantity)
-        self.price = Decimal(str(price))
+        self.price_pretax = Decimal(str(price_pretax))
+        self.tax = Decimal(str(tax))
         self.fields = {}
         self.attrs = {}
         for key in carton_settings.CART_STORED_FIELD:
@@ -45,13 +46,19 @@ class CartItem(object):
         
     def __repr__(self):
         return u'CartItem Object (%s)' % self.product
-   
+
     @property
     def subtotal(self):
         """
         Subtotal for the cart item.
         """
-        return self.price * self.quantity
+        return (self.price_pretax + self.tax) * self.quantity
+
+    def subtotal_pretax(self):
+        """
+        Subtotal for the cart item, pretax.
+        """
+        return self.price_pretax * self.quantity
 
 
 class Cart(object):
@@ -114,9 +121,21 @@ class Cart(object):
             raise ValueError('Missing price when adding to cart')
         if product.pk in self._items_dict:
             old_prod = self._items_dict[product.pk]
-            self.clear()
-            new_prod = CartItem( old_prod.product, old_prod.quantity, price )
+            self.remove(old_prod)
+            new_prod = CartItem( old_prod.product, old_prod.quantity, price, old_prod.tax )
             self._items_dict[product.pk] = new_prod
+        self.update_session()
+        
+    def add_tax(self, product, tax = None):
+        """
+        Add a tax amount to a product. This will
+        affect the total price for the product.
+        """
+        if tax == None:
+            raise ValueError('Missing tax in add_tax')
+        if product.pk in self._items_dict:
+            prod = self._items_dict[product.pk]
+            prod.tax = Decimal(str(tax))
         self.update_session()
 
     def add(self, product, price=None, quantity=1):
@@ -238,3 +257,12 @@ class Cart(object):
         The total value of all items in the cart.
         """
         return sum([item.subtotal for item in self.items])
+
+    @property
+    def total_pre_tax(self):
+        """
+        The total value of all the items in the cart pre-tax.
+        """
+        return sum([item.subtotal_pretax for item in self.items])
+        
+

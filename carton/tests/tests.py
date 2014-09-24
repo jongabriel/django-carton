@@ -23,6 +23,7 @@ class CartTests(TestCase):
         self.url_clear = reverse('carton-tests-clear')
         self.url_get_total = reverse('carton-tests-get-total')
         self.url_changeprice = reverse('carton-tests-change_price')
+        self.url_addtax = reverse('carton-tests-add_tax')
         self.deer_data = {'product_id': self.deer.custom_id}
         self.moose_data = {'product_id': self.moose.custom_id}
 
@@ -156,6 +157,69 @@ class CartTests(TestCase):
         deer_total = resp_dict['total_cost']
         self.assertEqual(float(deer_total), 20.0, "price didn't match: %s=20.0" %deer_total)
  
+        self.client.post(self.url_add, self.moose_data)
+        resp = self.client.get(self.url_get_total)
+        resp_dict = json.loads(resp.content)
+        deer2_and_moose_total = resp_dict['total_cost']
+        self.assertEqual(float(deer2_and_moose_total), 40.0, "price didn't match: %s=40.0" %deer2_and_moose_total)
  
+        #change the price to reflect tax
+        self.deer_data['price'] = 11.00
+        self.client.post(self.url_changeprice, self.deer_data)
+        resp = self.client.get(self.url_get_total)
+        resp_dict = json.loads(resp.content)
+        deer_total = resp_dict['total_cost']
+        self.assertEqual(float(deer_total), 42.0, "price didn't match: %s=42.0" %deer_total)
  
- 
+    def test_add_tax(self):
+        #add a deer
+        self.client.post(self.url_add, self.deer_data)
+        resp = self.client.get(self.url_get_total)
+        resp_dict = json.loads(resp.content)
+        deer_total = resp_dict['total_cost']
+        self.assertEqual(float(deer_total), 10.0, "price didn't match: %s=10.0" %deer_total)
+        
+        #then add some tax to it
+        self.deer_data['tax'] = 0.50
+        self.client.post(self.url_addtax,self.deer_data)
+        resp = self.client.get(self.url_get_total)
+        resp_dict = json.loads(resp.content)
+        deer_total = resp_dict['total_cost']
+        self.assertEqual(float(deer_total), 10.5, "price didn't match: %s=10.5" %deer_total)
+        
+        #add a moose
+        self.client.post(self.url_add, self.moose_data)
+        resp = self.client.get(self.url_get_total)
+        resp_dict = json.loads(resp.content)
+        deer2_and_moose_total = resp_dict['total_cost']
+        self.assertEqual(float(deer2_and_moose_total), 30.5, "price didn't match: %s=30.5" %deer2_and_moose_total)
+        
+        #change the price of the deer. tax stays the same
+        self.deer_data['price'] = 11.00
+        self.client.post(self.url_changeprice, self.deer_data)
+        resp = self.client.get(self.url_get_total)
+        resp_dict = json.loads(resp.content)
+        deer_total = resp_dict['total_cost']
+        self.assertEqual(float(deer_total), 31.5, "price didn't match: %s=31.5" %deer_total)
+        
+        #add tax for the moose
+        '''
+        Deer @ 11 + tax of 0.50 = 11.50
+        Moose @ 20 + tax of 1.25 = 21.25
+        Total = 31.75
+        '''
+        self.moose_data['tax'] = 1.25
+        self.client.post(self.url_addtax, self.moose_data)
+        resp = self.client.get(self.url_get_total)
+        resp_dict = json.loads(resp.content)
+        deer2_and_moose_total = resp_dict['total_cost']
+        self.assertEqual(float(deer2_and_moose_total), 32.75, "price didn't match: %s=32.75" %deer2_and_moose_total)
+        
+        #finally, we need 2 deer
+        self.client.post(self.url_add, self.deer_data)
+        resp = self.client.get(self.url_get_total)
+        resp_dict = json.loads(resp.content)
+        deer2_total = resp_dict['total_cost']
+        self.assertEqual(float(deer2_total), 44.25, "price didn't match: %s=44.25" %deer2_total)
+        
+        
