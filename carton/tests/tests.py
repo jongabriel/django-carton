@@ -229,4 +229,27 @@ class CartTests(TestCase):
         deer2_total = resp_dict['total_cost']
         self.assertEqual(float(deer2_total), 44.25, "price didn't match: %s=44.25" %deer2_total)
         
+    def test_add_float_tax(self):
+        #add a deer
+        self.client.post(self.url_add, self.deer_data)
+        resp = self.client.get(self.url_get_total)
+        resp_dict = json.loads(resp.content)
+        deer_total = resp_dict['total_cost']
+        self.assertEqual(float(deer_total), 10.0, "price didn't match: %s=10.0" %deer_total)
+        
+        #then add some tax to it
+        deer_tax = 10.0 * .0635
+        self.deer_data['tax'] = deer_tax
+        self.client.post(self.url_addtax,self.deer_data)
+        resp = self.client.get(self.url_get_total)
+        resp_dict = json.loads(resp.content)
+        deer_total = resp_dict['total_cost']
+        self.assertEqual(float(deer_total), 10.64, "price didn't match: %s=10.64" %deer_total)
+         
+        self.deer_data['quantity'] = 2
+        self.client.post(self.url_add, self.deer_data)
+        resp = self.client.get(self.url_get_total)
+        resp_dict = json.loads(resp.content)
+        deer_total = resp_dict['total_cost']
+        self.assertEqual(float(deer_total), 31.91, "price didn't match: %s=31.91" %deer_total)
         

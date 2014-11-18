@@ -7,6 +7,7 @@ from carton import settings as carton_settings
 from .utils import CartException, get_object
 
 import pickle
+import math
 
 class CartItem(object):
     """
@@ -52,7 +53,12 @@ class CartItem(object):
         """
         Subtotal for the cart item.
         """
-        return (self.price_pretax + self.tax) * self.quantity
+        total_price = (self.price_pretax + self.tax) * self.quantity
+        ceiling_price = math.ceil(total_price * 100) / 100
+        to_2f = "%.2f" % (ceiling_price)
+        to_2f = float(to_2f)
+        return to_2f
+        #return (self.price_pretax + self.tax) * self.quantity
     
     @property
     def subtotal_pretax(self):
@@ -257,7 +263,13 @@ class Cart(object):
         """
         The total value of all items in the cart.
         """
-        return sum([item.subtotal for item in self.items])
+        total_sum = sum([item.subtotal for item in self.items])
+        return total_sum
+#         print "total sum %s" %total_sum
+#         total_sum = "%.2f" % (total_sum)
+#         total_sum = float(total_sum)
+#         total_sum = math.ceil(total_sum) / 100
+#         return total_sum
 
     @property
     def total_pretax(self):
